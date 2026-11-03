@@ -1,25 +1,262 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expedientes Confidenciales</title>
-    <link rel="stylesheet" 
-    href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='estilos.css') }}">
 </head>
 <body>
-    <header>
-        <h1>Sistema Web de Expedientes</h1>
-        <p>Gestión, ordenamiento, búsqueda y cifrado César</p>
-    </header>
 
-    <main>
-        <section>
-            <h2>Bienvenido</h2>
-            <p>La aplicación está funcionando correctamente.</p>
-            <p>Próximamente podrás administrar expedientes ficticios.</p>
-        </section>
-    </main>
+<header>
+    <h1>EXPEDIENTES CONFIDENCIALES</h1>
+    <p>Sistema de gestión académica de expedientes</p>
+    <span>Ordenamiento | Búsqueda | Cifrado César</span>
+</header>
+
+<main>
+
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for categoria, mensaje in mensajes %}
+            <div class="mensaje {{ categoria }}">{{ mensaje }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% if error_archivo %}
+        <div class="mensaje error">{{ error_archivo }}</div>
+    {% endif %}
+
+    <!-- REGISTRAR -->
+    <section>
+        <h2>Registrar nuevo expediente</h2>
+
+        <form action="{{ url_for('crear') }}" method="POST">
+
+            <div class="form-grid">
+
+                <div>
+                    <label>Código único</label>
+                    <input type="text" name="codigo"
+                           placeholder="EXP-001" required>
+                </div>
+
+                <div>
+                    <label>Nombre</label>
+                    <input type="text" name="nombre" required>
+                </div>
+
+                <div>
+                    <label>Apellido</label>
+                    <input type="text" name="apellido" required>
+                </div>
+
+                <div>
+                    <label>Fecha de registro</label>
+                    <input type="date" name="fecha" required>
+                </div>
+
+                <div class="completo">
+                    <label>Descripción confidencial</label>
+                    <textarea name="descripcion"
+                              rows="4" required></textarea>
+                </div>
+
+                <div>
+                    <label>Desplazamiento César</label>
+                    <input type="number" name="desplazamiento"
+                           min="0" max="25" value="3" required>
+                </div>
+
+            </div>
+
+            <button type="submit">Guardar expediente</button>
+        </form>
+    </section>
+
+    <!-- ORDENAMIENTO -->
+    <section>
+        <h2>Ordenamiento</h2>
+
+        <form method="GET" action="{{ url_for('inicio') }}">
+
+            <div class="form-grid">
+
+                <div>
+                    <label>Algoritmo</label>
+                    <select name="ordenar" required>
+                        <option value="burbuja"
+                            {% if ordenar == 'burbuja' %}selected{% endif %}>
+                            Burbuja
+                        </option>
+                        <option value="seleccion"
+                            {% if ordenar == 'seleccion' %}selected{% endif %}>
+                            Selección
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Ordenar por</label>
+                    <select name="campo_orden">
+                        <option value="codigo"
+                            {% if campo_orden == 'codigo' %}selected{% endif %}>
+                            Código
+                        </option>
+                        <option value="nombre"
+                            {% if campo_orden == 'nombre' %}selected{% endif %}>
+                            Nombre
+                        </option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button type="submit">Ordenar expedientes</button>
+        </form>
+
+        {% if comparaciones is not none %}
+            <p class="resultado">
+                Algoritmo: {{ ordenar|capitalize }}
+                | Comparaciones realizadas: {{ comparaciones }}
+            </p>
+        {% endif %}
+    </section>
+
+    <!-- BUSQUEDA -->
+    <section>
+        <h2>Búsqueda de expedientes</h2>
+
+        <form method="GET" action="{{ url_for('inicio') }}">
+
+            <input type="hidden" name="ordenar" value="{{ ordenar }}">
+            <input type="hidden" name="campo_orden" value="{{ campo_orden }}">
+
+            <div class="form-grid">
+
+                <div>
+                    <label>Valor que deseas buscar</label>
+                    <input type="text" name="buscar"
+                           value="{{ buscar }}" required>
+                </div>
+
+                <div>
+                    <label>Buscar por</label>
+                    <select name="campo_busqueda">
+                        <option value="codigo"
+                            {% if campo_busqueda == 'codigo' %}selected{% endif %}>
+                            Código
+                        </option>
+                        <option value="nombre"
+                            {% if campo_busqueda == 'nombre' %}selected{% endif %}>
+                            Nombre
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Algoritmo</label>
+                    <select name="metodo">
+                        <option value="secuencial"
+                            {% if metodo == 'secuencial' %}selected{% endif %}>
+                            Secuencial
+                        </option>
+                        <option value="binaria"
+                            {% if metodo == 'binaria' %}selected{% endif %}>
+                            Binaria
+                        </option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button type="submit">Buscar expediente</button>
+        </form>
+
+        {% if error_busqueda %}
+            <div class="mensaje error">{{ error_busqueda }}</div>
+        {% endif %}
+
+        {% if comparaciones_busqueda is not none %}
+            <div class="resultado">
+                Método: {{ metodo|capitalize }}
+                | Comparaciones: {{ comparaciones_busqueda }}
+
+                {% if resultado %}
+                    <p>Expediente encontrado: {{ resultado.codigo }}</p>
+                {% else %}
+                    <p>No se encontró el expediente.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- LISTADO -->
+    <section>
+        <h2>Expedientes registrados</h2>
+
+        <p>Total de expedientes: {{ expedientes|length }}</p>
+
+        {% if expedientes %}
+
+        <div class="tabla-contenedor">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Fecha</th>
+                        <th>Descripción descifrada</th>
+                        <th>Desplazamiento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for expediente in expedientes %}
+                    <tr>
+                        <td>{{ expediente.codigo }}</td>
+                        <td>{{ expediente.nombre }}</td>
+                        <td>{{ expediente.apellido }}</td>
+                        <td>{{ expediente.fecha }}</td>
+                        <td>{{ expediente.descripcion_visible }}</td>
+                        <td>+{{ expediente.desplazamiento }}</td>
+
+                        <td>
+                            <a class="editar"
+                               href="{{ url_for('editar', codigo=expediente.codigo) }}">
+                               Editar
+                            </a>
+
+                            <form action="{{ url_for('eliminar', codigo=expediente.codigo) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('¿Eliminar este expediente?');">
+
+                                <button class="eliminar" type="submit">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+            <p>No hay expedientes registrados.</p>
+        {% endif %}
+
+    </section>
+
+</main>
+
+<footer>
+    <p>Proyecto académico - Clase de Algoritmos</p>
+    <p>Datos ficticios. Cifrado César con fines educativos.</p>
+</footer>
+
 </body>
 </html>

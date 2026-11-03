@@ -1,0 +1,192 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f4f8;
+    color: #243247;
+}
+
+header {
+    background: #172b4d;
+    color: white;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0 0 10px;
+}
+
+header p {
+    color: #d5deed;
+}
+
+header span {
+    font-size: 13px;
+    color: #a9c8f5;
+}
+
+main {
+    max-width: 1250px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+h2 {
+    color: #172b4d;
+    margin-top: 0;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.completo {
+    grid-column: 1 / -1;
+}
+
+label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: bold;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #cbd2dc;
+    border-radius: 6px;
+    font: inherit;
+}
+
+textarea {
+    resize: vertical;
+}
+
+button, .editar, .volver {
+    display: inline-block;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+button {
+    background: #2457a7;
+    color: white;
+}
+
+button:hover {
+    background: #173e7c;
+}
+
+.editar {
+    background: #e5a52b;
+    color: #202b3c;
+}
+
+.eliminar {
+    background: #b42318;
+    color: white;
+}
+
+.volver {
+    background: #64748b;
+    color: white;
+}
+
+.mensaje {
+    padding: 13px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+}
+
+.exito {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.resultado {
+    background: #e8f0fe;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.tabla-contenedor {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #e1e5eb;
+    text-align: left;
+}
+
+th {
+    background: #172b4d;
+    color: white;
+}
+
+tr:hover {
+    background: #f5f7fa;
+}
+
+td form {
+    display: inline;
+}
+
+footer {
+    background: #172b4d;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 35px;
+}
+
+footer p {
+    font-size: 13px;
+}
+
+@media (max-width: 650px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .completo {
+        grid-column: auto;
+    }
+
+    header h1 {
+        font-size: 22px;
+    }
+}
