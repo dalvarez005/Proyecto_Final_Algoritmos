@@ -1,58 +1,29 @@
+{% extends "base.html" %}
+{% from "_campos.html" import campos %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar expediente</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='estilos.css') }}">
-</head>
-<body>
+{% block titulo %}Editar {{ expediente.codigo }} · Expedientes Confidenciales{% endblock %}
 
-<header>
-    <h1>EDITAR EXPEDIENTE</h1>
-    <p>Actualizar información del registro</p>
-</header>
+{% block contenido %}
 
-<main>
-    <section>
-        <form method="POST">
+<nav class="migas" aria-label="Ruta">
+    <a href="{{ url_for('inicio') }}">Archivo</a>
+    <span aria-hidden="true">/</span>
+    <span class="mono" aria-current="page">{{ expediente.codigo }}</span>
+</nav>
 
-            <label>Código</label>
-            <input type="text" name="codigo"
-                   value="{{ expediente.codigo }}" required>
+<section class="panel panel-edicion" aria-labelledby="t-editar">
+    <header class="panel-cabeza">
+        <h2 id="t-editar">Editar expediente <span class="mono">{{ expediente.codigo }}</span></h2>
+        <p>Al guardar, la descripción se vuelve a cifrar con el desplazamiento elegido.</p>
+    </header>
 
-            <label>Nombre</label>
-            <input type="text" name="nombre"
-                   value="{{ expediente.nombre }}" required>
+    <form method="POST">
+        {{ campos(exp=expediente) }}
+        <div class="acciones">
+            <button type="submit" class="boton boton-primario">Guardar cambios</button>
+            <a href="{{ url_for('inicio') }}" class="boton boton-texto">Cancelar</a>
+        </div>
+    </form>
+</section>
 
-            <label>Apellido</label>
-            <input type="text" name="apellido"
-                   value="{{ expediente.apellido }}" required>
-
-            <label>Fecha</label>
-            <input type="date" name="fecha"
-                   value="{{ expediente.fecha }}" required>
-
-            <label>Descripción</label>
-            <textarea name="descripcion"
-                      rows="5" required>{{ expediente.descripcion_visible }}</textarea>
-
-            <label>Desplazamiento César</label>
-            <input type="number" name="desplazamiento"
-                   min="0" max="25"
-                   value="{{ expediente.desplazamiento }}" required>
-
-            <button type="submit">Guardar cambios</button>
-
-            <a href="{{ url_for('inicio') }}" class="volver">
-                Regresar
-            </a>
-
-        </form>
-    </section>
-</main>
-
-</body>
-</html>
+{% endblock %}

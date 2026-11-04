@@ -1,262 +1,226 @@
+{% extends "base.html" %}
+{% from "_campos.html" import campos %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expedientes Confidenciales</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='estilos.css') }}">
-</head>
-<body>
+{% block contenido %}
 
-<header>
-    <h1>EXPEDIENTES CONFIDENCIALES</h1>
-    <p>Sistema de gestión académica de expedientes</p>
-    <span>Ordenamiento | Búsqueda | Cifrado César</span>
-</header>
+{% if error_archivo %}
+    <p class="aviso aviso-error" role="alert">{{ error_archivo }}</p>
+{% endif %}
 
-<main>
+{% set n = expedientes|length %}
 
-    {% with mensajes = get_flashed_messages(with_categories=true) %}
-        {% for categoria, mensaje in mensajes %}
-            <div class="mensaje {{ categoria }}">{{ mensaje }}</div>
-        {% endfor %}
-    {% endwith %}
-
-    {% if error_archivo %}
-        <div class="mensaje error">{{ error_archivo }}</div>
-    {% endif %}
+<div class="tablero">
 
     <!-- REGISTRAR -->
-    <section>
-        <h2>Registrar nuevo expediente</h2>
+    <section class="panel panel-registro" aria-labelledby="t-registro">
+        <header class="panel-cabeza">
+            <h2 id="t-registro">Registrar expediente</h2>
+            <p>La descripción se guarda cifrada con el desplazamiento que elijas.</p>
+        </header>
 
         <form action="{{ url_for('crear') }}" method="POST">
-
-            <div class="form-grid">
-
-                <div>
-                    <label>Código único</label>
-                    <input type="text" name="codigo"
-                           placeholder="EXP-001" required>
-                </div>
-
-                <div>
-                    <label>Nombre</label>
-                    <input type="text" name="nombre" required>
-                </div>
-
-                <div>
-                    <label>Apellido</label>
-                    <input type="text" name="apellido" required>
-                </div>
-
-                <div>
-                    <label>Fecha de registro</label>
-                    <input type="date" name="fecha" required>
-                </div>
-
-                <div class="completo">
-                    <label>Descripción confidencial</label>
-                    <textarea name="descripcion"
-                              rows="4" required></textarea>
-                </div>
-
-                <div>
-                    <label>Desplazamiento César</label>
-                    <input type="number" name="desplazamiento"
-                           min="0" max="25" value="3" required>
-                </div>
-
+            {{ campos(hoy=hoy) }}
+            <div class="acciones">
+                <button type="submit" class="boton boton-primario">Guardar expediente</button>
             </div>
-
-            <button type="submit">Guardar expediente</button>
         </form>
     </section>
 
-    <!-- ORDENAMIENTO -->
-    <section>
-        <h2>Ordenamiento</h2>
+    <div class="columna-herramientas">
 
-        <form method="GET" action="{{ url_for('inicio') }}">
+        <!-- ORDENAMIENTO -->
+        <section class="panel" aria-labelledby="t-orden">
+            <header class="panel-cabeza">
+                <h2 id="t-orden">Ordenar</h2>
+                <p>Reordena el archivo y cuenta las comparaciones.</p>
+            </header>
 
-            <div class="form-grid">
-
-                <div>
-                    <label>Algoritmo</label>
-                    <select name="ordenar" required>
-                        <option value="burbuja"
-                            {% if ordenar == 'burbuja' %}selected{% endif %}>
-                            Burbuja
-                        </option>
-                        <option value="seleccion"
-                            {% if ordenar == 'seleccion' %}selected{% endif %}>
-                            Selección
-                        </option>
-                    </select>
+            <form method="GET" action="{{ url_for('inicio') }}">
+                <div class="rejilla-campos">
+                    <div class="campo">
+                        <label for="ordenar">Algoritmo</label>
+                        <select id="ordenar" name="ordenar">
+                            {% for clave, nombre in nombres_orden.items() %}
+                            <option value="{{ clave }}" {% if ordenar == clave %}selected{% endif %}>{{ nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label for="campo_orden">Ordenar por</label>
+                        <select id="campo_orden" name="campo_orden">
+                            <option value="codigo" {% if campo_orden == 'codigo' %}selected{% endif %}>Código</option>
+                            <option value="nombre" {% if campo_orden == 'nombre' %}selected{% endif %}>Nombre</option>
+                        </select>
+                    </div>
                 </div>
-
-                <div>
-                    <label>Ordenar por</label>
-                    <select name="campo_orden">
-                        <option value="codigo"
-                            {% if campo_orden == 'codigo' %}selected{% endif %}>
-                            Código
-                        </option>
-                        <option value="nombre"
-                            {% if campo_orden == 'nombre' %}selected{% endif %}>
-                            Nombre
-                        </option>
-                    </select>
+                <div class="acciones">
+                    <button type="submit" class="boton">Ordenar</button>
+                    {% if ordenar %}
+                    <a class="boton boton-texto" href="{{ url_for('inicio') }}">Quitar orden</a>
+                    {% endif %}
                 </div>
+            </form>
 
+            {% if comparaciones is not none %}
+            <div class="medida" aria-label="Resultado del ordenamiento">
+                <dl class="medida-datos">
+                <div>
+                    <dt>Comparaciones</dt>
+                    <dd class="mono">{{ comparaciones }}</dd>
+                </div>
+                <div>
+                    <dt>Registros</dt>
+                    <dd class="mono">{{ n }}</dd>
+                </div>
+                <div>
+                    <dt>Complejidad</dt>
+                    <dd class="mono">O(n²)</dd>
+                </div>
+                </dl>
+                <p class="medida-nota">
+                    {{ nombres_orden[ordenar] }} por {{ 'código' if campo_orden == 'codigo' else 'nombre' }}:
+                    hace siempre n(n−1)/2 = {{ (n * (n - 1)) // 2 }} comparaciones.
+                </p>
             </div>
+            {% endif %}
+        </section>
 
-            <button type="submit">Ordenar expedientes</button>
-        </form>
+        <!-- BÚSQUEDA -->
+        <section class="panel" aria-labelledby="t-busqueda">
+            <header class="panel-cabeza">
+                <h2 id="t-busqueda">Buscar</h2>
+                <p>La búsqueda binaria necesita la lista ordenada por el mismo campo.</p>
+            </header>
 
-        {% if comparaciones is not none %}
-            <p class="resultado">
-                Algoritmo: {{ ordenar|capitalize }}
-                | Comparaciones realizadas: {{ comparaciones }}
-            </p>
-        {% endif %}
-    </section>
+            <form method="GET" action="{{ url_for('inicio') }}">
+                {% if ordenar %}
+                <input type="hidden" name="ordenar" value="{{ ordenar }}">
+                <input type="hidden" name="campo_orden" value="{{ campo_orden }}">
+                {% endif %}
 
-    <!-- BUSQUEDA -->
-    <section>
-        <h2>Búsqueda de expedientes</h2>
-
-        <form method="GET" action="{{ url_for('inicio') }}">
-
-            <input type="hidden" name="ordenar" value="{{ ordenar }}">
-            <input type="hidden" name="campo_orden" value="{{ campo_orden }}">
-
-            <div class="form-grid">
-
-                <div>
-                    <label>Valor que deseas buscar</label>
-                    <input type="text" name="buscar"
-                           value="{{ buscar }}" required>
+                <div class="rejilla-campos">
+                    <div class="campo campo-completo">
+                        <label for="buscar">Valor a buscar</label>
+                        <input id="buscar" type="search" name="buscar"
+                               value="{{ buscar }}" placeholder="EXP-001 o un nombre"
+                               autocomplete="off" required>
+                    </div>
+                    <div class="campo">
+                        <label for="campo_busqueda">Buscar por</label>
+                        <select id="campo_busqueda" name="campo_busqueda">
+                            <option value="codigo" {% if campo_busqueda == 'codigo' %}selected{% endif %}>Código</option>
+                            <option value="nombre" {% if campo_busqueda == 'nombre' %}selected{% endif %}>Nombre</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label for="metodo">Algoritmo</label>
+                        <select id="metodo" name="metodo">
+                            {% for clave, nombre in nombres_busqueda.items() %}
+                            <option value="{{ clave }}" {% if metodo == clave %}selected{% endif %}>{{ nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-
-                <div>
-                    <label>Buscar por</label>
-                    <select name="campo_busqueda">
-                        <option value="codigo"
-                            {% if campo_busqueda == 'codigo' %}selected{% endif %}>
-                            Código
-                        </option>
-                        <option value="nombre"
-                            {% if campo_busqueda == 'nombre' %}selected{% endif %}>
-                            Nombre
-                        </option>
-                    </select>
+                <div class="acciones">
+                    <button type="submit" class="boton">Buscar</button>
                 </div>
+            </form>
 
+            {% if error_busqueda %}
+                <p class="aviso aviso-error" role="alert">{{ error_busqueda }}</p>
+            {% endif %}
+
+            {% if comparaciones_busqueda is not none %}
+            <div class="medida" role="status">
+                <dl class="medida-datos">
                 <div>
-                    <label>Algoritmo</label>
-                    <select name="metodo">
-                        <option value="secuencial"
-                            {% if metodo == 'secuencial' %}selected{% endif %}>
-                            Secuencial
-                        </option>
-                        <option value="binaria"
-                            {% if metodo == 'binaria' %}selected{% endif %}>
-                            Binaria
-                        </option>
-                    </select>
+                    <dt>Comparaciones</dt>
+                    <dd class="mono">{{ comparaciones_busqueda }}</dd>
                 </div>
-
-            </div>
-
-            <button type="submit">Buscar expediente</button>
-        </form>
-
-        {% if error_busqueda %}
-            <div class="mensaje error">{{ error_busqueda }}</div>
-        {% endif %}
-
-        {% if comparaciones_busqueda is not none %}
-            <div class="resultado">
-                Método: {{ metodo|capitalize }}
-                | Comparaciones: {{ comparaciones_busqueda }}
-
+                <div>
+                    <dt>Método</dt>
+                    <dd>{{ nombres_busqueda[metodo] }}</dd>
+                </div>
+                <div>
+                    <dt>Complejidad</dt>
+                    <dd class="mono">{{ 'O(log n)' if metodo == 'binaria' else 'O(n)' }}</dd>
+                </div>
+                </dl>
                 {% if resultado %}
-                    <p>Expediente encontrado: {{ resultado.codigo }}</p>
+                <p class="medida-nota">
+                    Encontrado: <a href="#encontrado" class="mono">{{ resultado.codigo }}</a>
+                    · {{ resultado.nombre }} {{ resultado.apellido }}
+                </p>
                 {% else %}
-                    <p>No se encontró el expediente.</p>
+                <p class="medida-nota">No hay ningún expediente con «{{ buscar }}».</p>
                 {% endif %}
             </div>
-        {% endif %}
-    </section>
+            {% endif %}
+        </section>
 
-    <!-- LISTADO -->
-    <section>
-        <h2>Expedientes registrados</h2>
+    </div>
+</div>
 
-        <p>Total de expedientes: {{ expedientes|length }}</p>
-
-        {% if expedientes %}
-
-        <div class="tabla-contenedor">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>Apellido</th>
-                        <th>Fecha</th>
-                        <th>Descripción descifrada</th>
-                        <th>Desplazamiento</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for expediente in expedientes %}
-                    <tr>
-                        <td>{{ expediente.codigo }}</td>
-                        <td>{{ expediente.nombre }}</td>
-                        <td>{{ expediente.apellido }}</td>
-                        <td>{{ expediente.fecha }}</td>
-                        <td>{{ expediente.descripcion_visible }}</td>
-                        <td>+{{ expediente.desplazamiento }}</td>
-
-                        <td>
-                            <a class="editar"
-                               href="{{ url_for('editar', codigo=expediente.codigo) }}">
-                               Editar
-                            </a>
-
-                            <form action="{{ url_for('eliminar', codigo=expediente.codigo) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('¿Eliminar este expediente?');">
-
-                                <button class="eliminar" type="submit">
-                                    Eliminar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- LISTADO -->
+<section class="panel panel-archivo" aria-labelledby="t-archivo">
+    <header class="panel-cabeza panel-cabeza-fila">
+        <div>
+            <h2 id="t-archivo">Archivo</h2>
+            <p>
+                {% if ordenar %}
+                    Ordenado por {{ 'código' if campo_orden == 'codigo' else 'nombre' }} con {{ nombres_orden[ordenar]|lower }}.
+                {% else %}
+                    En orden de registro.
+                {% endif %}
+            </p>
         </div>
+        <p class="contador"><span class="mono">{{ n }}</span> {{ 'expediente' if n == 1 else 'expedientes' }}</p>
+    </header>
 
-        {% else %}
-            <p>No hay expedientes registrados.</p>
-        {% endif %}
+    {% if expedientes %}
+    <div class="tabla-marco">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Titular</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col" class="num">Despl.</th>
+                    <th scope="col"><span class="solo-lector">Acciones</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expedientes %}
+                {% set encontrado = resultado and resultado.codigo == e.codigo %}
+                <tr {% if encontrado %}id="encontrado" class="fila-encontrada" aria-current="true"{% endif %}>
+                    <td data-etiqueta="Código" class="mono celda-codigo">{{ e.codigo }}</td>
+                    <td data-etiqueta="Titular" class="celda-titular">{{ e.nombre }} {{ e.apellido }}</td>
+                    <td data-etiqueta="Fecha" class="mono">{{ e.fecha }}</td>
+                    <td data-etiqueta="Descripción" class="celda-descripcion">
+                        <span class="texto-plano">{{ e.descripcion_visible }}</span>
+                        <span class="texto-cifrado mono" title="Texto guardado (cifrado)">{{ e.descripcion }}</span>
+                    </td>
+                    <td data-etiqueta="Desplazamiento" class="mono num">+{{ e.desplazamiento }}</td>
+                    <td class="celda-acciones">
+                        <a class="boton boton-chico" href="{{ url_for('editar', codigo=e.codigo) }}">Editar</a>
+                        <form action="{{ url_for('eliminar', codigo=e.codigo) }}" method="POST"
+                              data-confirmar="¿Eliminar el expediente {{ e.codigo }}? No se puede deshacer.">
+                            <button class="boton boton-chico boton-peligro" type="submit">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif not error_archivo %}
+    <div class="vacio">
+        <p class="vacio-titulo">El archivo está vacío</p>
+        <p>Registra el primer expediente con el formulario de arriba. Luego podrás ordenarlo, buscarlo y ver su descripción cifrada.</p>
+        <a class="boton" href="#codigo">Registrar el primero</a>
+    </div>
+    {% endif %}
+</section>
 
-    </section>
-
-</main>
-
-<footer>
-    <p>Proyecto académico - Clase de Algoritmos</p>
-    <p>Datos ficticios. Cifrado César con fines educativos.</p>
-</footer>
-
-</body>
-</html>
+{% endblock %}
