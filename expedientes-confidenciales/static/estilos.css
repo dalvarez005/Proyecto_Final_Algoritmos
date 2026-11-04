@@ -670,12 +670,166 @@ input[type="range"]:focus-visible {
 }
 
 .celda-acciones {
+    width: 1%;
     white-space: nowrap;
-    text-align: right;
+    vertical-align: middle;
 }
 
-.celda-acciones form {
-    display: inline;
+.acciones-fila {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
+/* Botones de ícono: discretos hasta que se les pasa el mouse */
+.icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0 0.6rem;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--tinta-3);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radio);
+    text-decoration: none;
+    cursor: pointer;
+    list-style: none;
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.icono::-webkit-details-marker {
+    display: none;
+}
+
+.icono-svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.icono-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.icono:hover,
+.icono[aria-expanded="true"] {
+    color: var(--azul);
+    background: var(--azul-suave);
+}
+
+.icono-peligro:hover,
+.icono-peligro[aria-expanded="true"] {
+    color: var(--rojo);
+    background: var(--rojo-suave);
+}
+
+.boton-borrar {
+    color: #fff;
+    background: var(--rojo);
+}
+
+.boton-borrar:hover {
+    background: var(--rojo-hover);
+}
+
+/* Confirmación de borrado: franja bajo la fila, sin ventanas del navegador */
+.tabla tbody tr.borrando,
+.tabla tbody tr.borrando:hover,
+.tabla tbody tr.fila-borrar,
+.tabla tbody tr.fila-borrar:hover {
+    background: var(--rojo-suave);
+}
+
+.tabla tbody tr.borrando td {
+    border-bottom-color: transparent;
+}
+
+.fila-borrar > td {
+    padding: 0 0.9rem 0.9rem;
+    border-bottom: 1px solid #e8bdb6;
+    box-shadow: inset 3px 0 0 var(--rojo);
+}
+
+.borrar-caja {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 1.25rem;
+    animation: desplegar 220ms var(--ease);
+}
+
+.borrar-caja p {
+    color: var(--rojo-hover);
+    font-size: 0.93rem;
+}
+
+.borrar-botones {
+    display: flex;
+    gap: 0.4rem;
+}
+
+/* Fila de edición */
+.tabla tr[hidden] {
+    display: none !important;
+}
+
+.tabla tbody tr.editando,
+.tabla tbody tr.editando:hover {
+    background: var(--azul-suave);
+}
+
+.tabla tbody tr.editando td {
+    border-bottom-color: transparent;
+}
+
+.tabla tbody tr.fila-edicion,
+.tabla tbody tr.fila-edicion:hover {
+    background: var(--hoja-2);
+}
+
+.fila-edicion > td {
+    padding: 0 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--linea-fuerte);
+    box-shadow: inset 3px 0 0 var(--azul);
+}
+
+.form-edicion {
+    padding-top: 1rem;
+    animation: desplegar 260ms var(--ease);
+}
+
+.edicion-titulo {
+    margin-bottom: 0.9rem;
+    font-weight: 700;
+    font-stretch: 110%;
+}
+
+.form-edicion .aviso {
+    margin-bottom: 1rem;
+}
+
+@keyframes desplegar {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
 }
 
 .fila-encontrada,
@@ -820,21 +974,56 @@ input[type="range"]:focus-visible {
         text-align: left;
     }
 
-    .celda-acciones {
-        display: flex !important;
-        gap: 0.5rem;
+    .tabla .celda-acciones {
+        display: block;
+        width: auto;
         margin-top: 0.5rem;
-        padding-top: 0.75rem !important;
-        border-top: 1px dashed var(--linea) !important;
+        padding-top: 0.6rem;
+        border-top: 1px dashed var(--linea);
     }
 
-    .celda-acciones .boton,
-    .celda-acciones form {
-        flex: 1;
+    .acciones-fila {
+        justify-content: flex-start;
     }
 
-    .celda-acciones form .boton {
-        width: 100%;
+    .icono {
+        color: var(--tinta-2);
+    }
+
+    .icono-texto {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip-path: none;
+    }
+
+    .tabla tbody tr.fila-panel {
+        margin-top: -0.75rem;
+        padding: 0 1rem 1rem;
+        background: var(--hoja-2);
+        border-top: 0;
+        border-radius: 0 0 var(--radio) var(--radio);
+    }
+
+    .tabla tbody tr.fila-borrar {
+        padding-top: 0.25rem;
+        border-color: #e8bdb6;
+        background: var(--rojo-suave);
+    }
+
+    .tabla tbody tr.editando,
+    .tabla tbody tr.borrando {
+        border-bottom-left-radius: 0;
+        border-bottom: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .tabla .fila-panel > td {
+        display: block;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
     }
 }
 

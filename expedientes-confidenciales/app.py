@@ -2,6 +2,7 @@ import json
 import os
 from datetime import date
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -145,13 +146,24 @@ def buscar_por_codigo(expedientes, codigo):
 # PÁGINA PRINCIPAL
 # ==========================================
 
-@app.route("/")
-def inicio():
-    ordenar = request.args.get("ordenar", "")
-    campo_orden = request.args.get("campo_orden", "codigo")
-    buscar = request.args.get("buscar", "").strip()
-    metodo = request.args.get("metodo", "secuencial")
-    campo_busqueda = request.args.get("campo_busqueda", "codigo")
+PARAMETROS_VISTA = ["ordenar", "campo_orden", "buscar", "metodo", "campo_busqueda"]
+
+
+def parametros_vista(origen):
+    """Conserva solo los parámetros de orden y búsqueda (para volver a la misma vista)."""
+    return {k: origen[k] for k in PARAMETROS_VISTA if origen.get(k)}
+
+
+def parametros_desde_volver():
+    return parametros_vista(dict(parse_qsl(request.form.get("volver", ""))))
+
+
+def pagina_inicio(args, editar=None, borrador=None, error_edicion=None, estado=200, eliminar=None):
+    ordenar = args.get("ordenar", "")
+    campo_orden = args.get("campo_orden", "codigo")
+    buscar = args.get("buscar", "").strip()
+    metodo = args.get("metodo", "secuencial")
+    campo_busqueda = args.get("campo_busqueda", "codigo")
 
     if ordenar not in ALGORITMOS_ORDEN:
         ordenar = ""
@@ -161,6 +173,8 @@ def inicio():
         metodo = "secuencial"
     if campo_busqueda not in CAMPOS_ORDENABLES:
         campo_busqueda = "codigo"
+
+    vista = parametros_vista(args)
 
     contexto = {
         "expedientes": [],
@@ -177,13 +191,19 @@ def inicio():
         "nombres_orden": {k: v[0] for k, v in ALGORITMOS_ORDEN.items()},
         "nombres_busqueda": ALGORITMOS_BUSQUEDA,
         "hoy": date.today().isoformat(),
+        "editar": (editar or "").casefold(),
+        "eliminar": (eliminar or "").casefold(),
+        "borrador": borrador,
+        "error_edicion": error_edicion,
+        "vista": vista,
+        "volver": urlencode(vista),
     }
 
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
         contexto["error_archivo"] = str(error)
-        return render_template("index.html", **contexto)
+        return render_template("index.html", **contexto), estado
 
     if ordenar:
         _, algoritmo = ALGORITMOS_ORDEN[ordenar]
@@ -216,7 +236,16 @@ def inicio():
             contexto["resultado"] = preparar_expediente(resultado)
 
     contexto["expedientes"] = [preparar_expediente(e) for e in expedientes]
-    return render_template("index.html", **contexto)
+    return render_template("index.html", **contexto), estado
+
+
+@app.route("/")
+def inicio():
+    return pagina_inicio(
+        request.args,
+        editar=request.args.get("editar"),
+        eliminar=request.args.get("eliminar"),
+    )
 
 
 # ==========================================
@@ -249,42 +278,52 @@ def crear():
 
 
 # ==========================================
-# EDITAR EXPEDIENTE
+# EDITAR EXPEDIENTE (dentro de la tabla)
 # ==========================================
 
 @app.route("/editar/<path:codigo>", methods=["GET", "POST"])
 def editar(codigo):
+    if request.method == "GET":
+        # La edición vive en la tabla; esta ruta solo abre la fila.
+        return redirect(url_for("inicio", editar=codigo, _anchor="editando"))
+
+    vista = parametros_desde_volver()
+
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
         flash(str(error), "error")
-        return redirect(url_for("inicio"))
+        return redirect(url_for("inicio", **vista))
 
     expediente = buscar_por_codigo(expedientes, codigo)
 
     if expediente is None:
         flash("Expediente no encontrado.", "error")
-        return redirect(url_for("inicio"))
+        return redirect(url_for("inicio", **vista))
 
-    if request.method == "POST":
-        datos, error = leer_formulario()
-        if error:
-            flash(error, "error")
-            return redirect(url_for("editar", codigo=codigo))
+    datos, error = leer_formulario()
 
+    if not error:
         otro = buscar_por_codigo(expedientes, datos["codigo"])
         if otro is not None and otro is not expediente:
-            flash(f"El código {datos['codigo']} ya está registrado.", "error")
-            return redirect(url_for("editar", codigo=codigo))
+            error = f"El código {datos['codigo']} ya está registrado."
 
-        datos["descripcion"] = cifrar(datos["descripcion"], datos["desplazamiento"])
-        expediente.update(datos)
-        guardar_expedientes(expedientes)
+    if error:
+        # Vuelve a mostrar la fila abierta con lo que escribió el usuario.
+        borrador = dict(datos)
+        borrador["descripcion_visible"] = datos["descripcion"]
+        borrador.setdefault("desplazamiento", request.form.get("desplazamiento", ""))
+        return pagina_inicio(
+            vista, editar=codigo, borrador=borrador,
+            error_edicion=error, estado=422,
+        )
 
-        flash(f"Expediente {datos['codigo']} actualizado.", "exito")
-        return redirect(url_for("inicio"))
+    datos["descripcion"] = cifrar(datos["descripcion"], datos["desplazamiento"])
+    expediente.update(datos)
+    guardar_expedientes(expedientes)
 
-    return render_template("editar.html", expediente=preparar_expediente(expediente))
+    flash(f"Expediente {datos['codigo']} actualizado.", "exito")
+    return redirect(url_for("inicio", **vista))
 
 
 # ==========================================
@@ -293,11 +332,13 @@ def editar(codigo):
 
 @app.route("/eliminar/<path:codigo>", methods=["POST"])
 def eliminar(codigo):
+    vista = parametros_desde_volver()
+
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
         flash(str(error), "error")
-        return redirect(url_for("inicio"))
+        return redirect(url_for("inicio", **vista))
 
     expediente = buscar_por_codigo(expedientes, codigo)
 
@@ -308,7 +349,7 @@ def eliminar(codigo):
         guardar_expedientes(expedientes)
         flash(f"Expediente {expediente['codigo']} eliminado.", "exito")
 
-    return redirect(url_for("inicio"))
+    return redirect(url_for("inicio", **vista))
 
 
 if __name__ == "__main__":

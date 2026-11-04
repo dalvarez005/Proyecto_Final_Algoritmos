@@ -15,6 +15,7 @@ Proyecto final de la clase de Algoritmos. Los datos son ficticios y el cifrado C
 ## Funciones
 
 - Registrar, editar y eliminar expedientes (código único, nombre, apellido, fecha y descripción).
+- Editar y eliminar se hacen dentro de la tabla: la fila se abre con el formulario o con la confirmación de borrado, sin cambiar de página ni usar ventanas del navegador. También funciona sin JavaScript.
 - Vista previa del cifrado mientras escribes: una tira del alfabeto muestra cómo se reemplaza cada letra y resalta las que usa tu texto.
 - Ordenar por código o por nombre, con el número de comparaciones y la fórmula n(n−1)/2.
 - Buscar por código o por nombre. La búsqueda binaria exige ordenar antes por el mismo campo; el expediente encontrado se resalta en la tabla.
@@ -71,12 +72,11 @@ expedientes-confidenciales/
 ├── data/expedientes.json  # Datos (se crea si no existe)
 ├── static/
 │   ├── estilos.css
-│   └── app.js             # Vista previa del cifrado y confirmación al eliminar
+│   └── app.js             # Vista previa del cifrado y paneles de editar/eliminar
 ├── templates/
 │   ├── base.html
 │   ├── _campos.html       # Campos compartidos por registrar y editar
-│   ├── index.html
-│   └── editar.html
+│   └── index.html
 └── tests/
 ```
 

@@ -1,47 +1,47 @@
 {# Campos compartidos por el formulario de registro y el de edición. #}
-{% macro campos(exp=None, hoy='') %}
+{% macro campos(exp=None, hoy='', p='') %}
 <div class="rejilla-campos">
 
     <div class="campo">
-        <label for="codigo">Código único</label>
-        <input id="codigo" type="text" name="codigo" class="mono"
+        <label for="{{ p }}codigo">Código único</label>
+        <input id="{{ p }}codigo" type="text" name="codigo" class="mono"
                value="{{ exp.codigo if exp else '' }}"
                placeholder="EXP-001" autocomplete="off" pattern="[^/]+"
                title="Cualquier texto sin el carácter /" required>
     </div>
 
     <div class="campo">
-        <label for="fecha">Fecha de registro</label>
-        <input id="fecha" type="date" name="fecha" class="mono"
+        <label for="{{ p }}fecha">Fecha de registro</label>
+        <input id="{{ p }}fecha" type="date" name="fecha" class="mono"
                value="{{ exp.fecha if exp else hoy }}" required>
     </div>
 
     <div class="campo">
-        <label for="nombre">Nombre</label>
-        <input id="nombre" type="text" name="nombre"
+        <label for="{{ p }}nombre">Nombre</label>
+        <input id="{{ p }}nombre" type="text" name="nombre"
                value="{{ exp.nombre if exp else '' }}" autocomplete="off" required>
     </div>
 
     <div class="campo">
-        <label for="apellido">Apellido</label>
-        <input id="apellido" type="text" name="apellido"
+        <label for="{{ p }}apellido">Apellido</label>
+        <input id="{{ p }}apellido" type="text" name="apellido"
                value="{{ exp.apellido if exp else '' }}" autocomplete="off" required>
     </div>
 
     <div class="campo campo-completo">
-        <label for="descripcion">Descripción confidencial</label>
-        <textarea id="descripcion" name="descripcion" rows="4"
+        <label for="{{ p }}descripcion">Descripción confidencial</label>
+        <textarea id="{{ p }}descripcion" name="descripcion" rows="4"
                   data-cifrado-texto required>{{ exp.descripcion_visible if exp else '' }}</textarea>
     </div>
 
     <div class="campo campo-completo cifrado" data-cifrado>
         <div class="cifrado-cabeza">
-            <label for="desplazamiento">Desplazamiento César</label>
-            <output class="cifrado-valor mono" for="desplazamiento" data-cifrado-valor>
+            <label for="{{ p }}desplazamiento">Desplazamiento César</label>
+            <output class="cifrado-valor mono" for="{{ p }}desplazamiento" data-cifrado-valor>
                 +{{ exp.desplazamiento if exp else 3 }}
             </output>
         </div>
-        <input id="desplazamiento" type="range" name="desplazamiento"
+        <input id="{{ p }}desplazamiento" type="range" name="desplazamiento"
                min="0" max="25" step="1"
                value="{{ exp.desplazamiento if exp else 3 }}"
                data-cifrado-desplazamiento>

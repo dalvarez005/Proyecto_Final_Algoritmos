@@ -54,8 +54,15 @@ def test_crear_rechaza_duplicado_y_datos_invalidos(cliente):
 def test_editar_y_eliminar(cliente):
     crear(cliente)
     r = cliente.get("/editar/EXP-001")
-    assert r.status_code == 200
-    assert "Hola" in r.get_data(as_text=True)
+    assert r.status_code == 302
+    assert "editar=EXP-001" in r.headers["Location"]
+
+    html = cliente.get("/?editar=EXP-001").get_data(as_text=True)
+    assert 'id="editando"' in html
+    assert "confirm(" not in html
+
+    html = cliente.get("/?eliminar=EXP-001").get_data(as_text=True)
+    assert 'id="eliminando"' in html and "Sí, eliminar" in html
 
     cliente.post("/editar/EXP-001", data={
         "codigo": "EXP-010", "nombre": "Ana", "apellido": "Pérez",
@@ -96,3 +103,27 @@ def test_json_corrupto_y_migracion(cliente):
     assert cliente.get("/").status_code == 200
     [exp] = leer(cliente)
     assert exp["desplazamiento"] == 3 and exp["descripcion"] == "def"
+
+
+def test_editar_con_error_conserva_lo_escrito(cliente):
+    crear(cliente)
+    crear(cliente, codigo="EXP-002")
+    r = cliente.post("/editar/EXP-001", data={
+        "codigo": "EXP-002", "nombre": "Nuevo nombre", "apellido": "Pérez",
+        "fecha": "2026-11-04", "descripcion": "texto nuevo", "desplazamiento": 4,
+        "volver": "ordenar=burbuja&campo_orden=nombre&malo=1",
+    })
+    html = r.get_data(as_text=True)
+    assert r.status_code == 422
+    assert "ya está registrado" in html
+    assert 'value="Nuevo nombre"' in html
+    assert "texto nuevo" in html
+    assert leer(cliente)[0]["nombre"] == "Ana"
+
+
+def test_eliminar_vuelve_a_la_misma_vista(cliente):
+    crear(cliente)
+    r = cliente.post("/eliminar/EXP-001", data={"volver": "ordenar=seleccion&campo_orden=nombre&x=1"})
+    assert r.status_code == 302
+    assert r.headers["Location"] == "/?ordenar=seleccion&campo_orden=nombre"
+    assert leer(cliente) == []

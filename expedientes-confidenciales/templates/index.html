@@ -193,7 +193,12 @@
             <tbody>
                 {% for e in expedientes %}
                 {% set encontrado = resultado and resultado.codigo == e.codigo %}
-                <tr {% if encontrado %}id="encontrado" class="fila-encontrada" aria-current="true"{% endif %}>
+                {% set abierto = editar and editar == e.codigo.casefold() %}
+                {% set n_fila = 'ed' ~ loop.index %}
+                {% set n_borrar = 'del' ~ loop.index %}
+                {% set borrando = eliminar and eliminar == e.codigo.casefold() %}
+                <tr class="{{ 'fila-encontrada' if encontrado }} {{ 'editando' if abierto }} {{ 'borrando' if borrando }}"
+                    {% if encontrado %}id="encontrado" aria-current="true"{% endif %}>
                     <td data-etiqueta="Código" class="mono celda-codigo">{{ e.codigo }}</td>
                     <td data-etiqueta="Titular" class="celda-titular">{{ e.nombre }} {{ e.apellido }}</td>
                     <td data-etiqueta="Fecha" class="mono">{{ e.fecha }}</td>
@@ -203,10 +208,50 @@
                     </td>
                     <td data-etiqueta="Desplazamiento" class="mono num">+{{ e.desplazamiento }}</td>
                     <td class="celda-acciones">
-                        <a class="boton boton-chico" href="{{ url_for('editar', codigo=e.codigo) }}">Editar</a>
-                        <form action="{{ url_for('eliminar', codigo=e.codigo) }}" method="POST"
-                              data-confirmar="¿Eliminar el expediente {{ e.codigo }}? No se puede deshacer.">
-                            <button class="boton boton-chico boton-peligro" type="submit">Eliminar</button>
+                        <div class="acciones-fila">
+                            <a class="icono" href="{{ url_for('inicio', editar=e.codigo, _anchor='editando', **vista) }}"
+                               data-panel="{{ n_fila }}" aria-controls="{{ n_fila }}"
+                               aria-expanded="{{ 'true' if abierto else 'false' }}"
+                               title="Editar {{ e.codigo }}">
+                                <svg class="icono-svg" viewBox="0 0 20 20" aria-hidden="true"><path d="M13.6 3.6a2 2 0 0 1 2.8 2.8L7 15.8l-3.6.8.8-3.6 9.4-9.4Z"/><path d="m12 5.2 2.8 2.8"/></svg><span class="icono-texto">Editar</span>
+                            </a>
+                            <a class="icono icono-peligro" href="{{ url_for('inicio', eliminar=e.codigo, _anchor='eliminando', **vista) }}"
+                               data-panel="{{ n_borrar }}" aria-controls="{{ n_borrar }}"
+                               aria-expanded="{{ 'true' if borrando else 'false' }}"
+                               title="Eliminar {{ e.codigo }}">
+                                <svg class="icono-svg" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 5.5h13"/><path d="M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/><path d="M5.2 5.5 6 16a1.2 1.2 0 0 0 1.2 1.1h5.6A1.2 1.2 0 0 0 14 16l.8-10.5"/><path d="M8.5 9v5M11.5 9v5"/></svg><span class="icono-texto">Eliminar</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="fila-panel fila-borrar" id="{{ n_borrar }}" {% if not borrando %}hidden{% endif %}>
+                    <td colspan="6">
+                        <div class="borrar-caja" {% if borrando %}id="eliminando"{% endif %} role="group" aria-label="Confirmar eliminación de {{ e.codigo }}">
+                            <p>¿Eliminar <span class="mono">{{ e.codigo }}</span> de {{ e.nombre }} {{ e.apellido }}? Esta acción no se puede deshacer.</p>
+                            <div class="borrar-botones">
+                                <a class="boton boton-chico boton-texto" href="{{ url_for('inicio', **vista) }}" data-cerrar-panel="{{ n_borrar }}">Cancelar</a>
+                                <form action="{{ url_for('eliminar', codigo=e.codigo) }}" method="POST">
+                                    <input type="hidden" name="volver" value="{{ volver }}">
+                                    <button class="boton boton-chico boton-borrar" type="submit">Sí, eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="fila-panel fila-edicion" id="{{ n_fila }}" {% if not abierto %}hidden{% endif %}>
+                    <td colspan="6">
+                        <form action="{{ url_for('editar', codigo=e.codigo) }}" method="POST"
+                              class="form-edicion" {% if abierto %}id="editando"{% endif %}>
+                            <input type="hidden" name="volver" value="{{ volver }}">
+                            <p class="edicion-titulo">Editando <span class="mono">{{ e.codigo }}</span></p>
+                            {% if abierto and error_edicion %}
+                            <p class="aviso aviso-error" role="alert">{{ error_edicion }}</p>
+                            {% endif %}
+                            {{ campos(exp=(borrador if abierto and borrador else e), p=n_fila ~ '-') }}
+                            <div class="acciones">
+                                <button type="submit" class="boton boton-primario">Guardar cambios</button>
+                                <a class="boton boton-texto" href="{{ url_for('inicio', **vista) }}" data-cerrar-panel="{{ n_fila }}">Cancelar</a>
+                            </div>
                         </form>
                     </td>
                 </tr>

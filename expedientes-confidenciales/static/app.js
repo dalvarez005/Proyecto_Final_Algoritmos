@@ -1,4 +1,4 @@
-// Vista previa del cifrado César y confirmación al eliminar.
+// Vista previa del cifrado César, edición en la tabla y confirmación al eliminar.
 // Usa la misma lógica que algoritmos/cesar.py.
 
 (function () {
@@ -57,9 +57,83 @@
         actualizar();
     });
 
-    document.querySelectorAll("form[data-confirmar]").forEach(function (form) {
-        form.addEventListener("submit", function (evento) {
-            if (!window.confirm(form.dataset.confirmar)) evento.preventDefault();
+    // ---------- Paneles bajo cada fila: editar y confirmar borrado ----------
+    // Solo uno abierto a la vez. Sin JavaScript, los enlaces abren el panel desde el servidor.
+
+    function botonDe(panel) {
+        return document.querySelector('[data-panel="' + panel.id + '"]');
+    }
+
+    function cerrarPanel(panel) {
+        if (panel.hidden) return;
+        panel.hidden = true;
+        var fila = panel.previousElementSibling;
+        while (fila && fila.classList.contains("fila-panel")) fila = fila.previousElementSibling;
+        if (fila) fila.classList.remove("editando", "borrando");
+        var boton = botonDe(panel);
+        if (boton) boton.setAttribute("aria-expanded", "false");
+
+        var form = panel.classList.contains("fila-edicion") && panel.querySelector("form");
+        if (form) {
+            form.reset();
+            var aviso = form.querySelector(".aviso");
+            if (aviso) aviso.remove();
+            form.querySelectorAll("[data-cifrado-texto]").forEach(function (t) {
+                t.dispatchEvent(new Event("input"));
+            });
+        }
+    }
+
+    function abrirPanel(panel, boton) {
+        document.querySelectorAll(".fila-panel:not([hidden])").forEach(cerrarPanel);
+        panel.hidden = false;
+        var fila = panel.previousElementSibling;
+        while (fila && fila.classList.contains("fila-panel")) fila = fila.previousElementSibling;
+        var esEdicion = panel.classList.contains("fila-edicion");
+        if (fila) fila.classList.add(esEdicion ? "editando" : "borrando");
+        boton.setAttribute("aria-expanded", "true");
+
+        var destino = esEdicion
+            ? panel.querySelector("input:not([type=hidden])")
+            : panel.querySelector("[data-cerrar-panel]");
+        if (destino) destino.focus({ preventScroll: true });
+        panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    function limpiarURL(href) {
+        if (/[?&](editar|eliminar)=/.test(location.search)) {
+            history.replaceState(null, "", href);
+        }
+    }
+
+    document.querySelectorAll("[data-panel]").forEach(function (boton) {
+        boton.addEventListener("click", function (evento) {
+            var panel = document.getElementById(boton.dataset.panel);
+            if (!panel) return;
+            evento.preventDefault();
+            if (panel.hidden) abrirPanel(panel, boton);
+            else cerrarPanel(panel);
+        });
+    });
+
+    document.querySelectorAll("[data-cerrar-panel]").forEach(function (enlace) {
+        enlace.addEventListener("click", function (evento) {
+            var panel = document.getElementById(enlace.dataset.cerrarPanel);
+            if (!panel) return;
+            evento.preventDefault();
+            cerrarPanel(panel);
+            var boton = botonDe(panel);
+            if (boton) boton.focus();
+            limpiarURL(enlace.getAttribute("href"));
+        });
+    });
+
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key !== "Escape") return;
+        document.querySelectorAll(".fila-borrar:not([hidden])").forEach(function (panel) {
+            cerrarPanel(panel);
+            var boton = botonDe(panel);
+            if (boton) boton.focus();
         });
     });
 })();
