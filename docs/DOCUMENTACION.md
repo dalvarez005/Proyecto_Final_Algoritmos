@@ -1,19 +1,19 @@
 # Sistema Web de Expedientes Confidenciales — Documentación
 
-Proyecto final de Algoritmos · Universidad Mariano Gálvez de Guatemala · Ing. David Díaz
+Proyecto final de Algoritmos · Universidad Mariano Gálvez de Guatemala · Facultad de Ingeniería en Sistemas de Información y Ciencias de la Computación · Catedrático: Ing. David Olivier Díaz Hidalgo
 
 ## 1. Integrantes y foto del grupo
 
 | Nombre | Carné |
 |---|---|
-| _Pendiente_ | _Pendiente_ |
-| _Pendiente_ | _Pendiente_ |
-| _Pendiente_ | _Pendiente_ |
-| _Pendiente_ | _Pendiente_ |
+| Edgar Geovanni Patzán Santos | 7690-26-5908 |
+| Diego Ricardo Álvarez Castañeda | 7690-26-2493 |
+| Carlos Vinicio Camas | 7690-26-12538 |
+| Maynor Iván Guerra Chávez | 7690-26-9413 |
 
 ![Foto del grupo](foto-grupo.jpg)
 
-> Pendiente: guardar la foto grupal (no individuales) como `docs/foto-grupo.jpg` y completar la tabla.
+> Pendiente: guardar la foto grupal (no individuales) como `docs/foto-grupo.jpg`.
 
 ## 2. Propuesta de valor
 

@@ -1,0 +1,9 @@
+*
+!requirements.txt
+!docker-entrypoint.sh
+!expedientes-confidenciales/app.py
+!expedientes-confidenciales/algoritmos/
+!expedientes-confidenciales/templates/
+!expedientes-confidenciales/static/
+!expedientes-confidenciales/data/expedientes_ejemplo.json
+**/__pycache__

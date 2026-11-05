@@ -13,6 +13,25 @@ from algoritmos.ordenamiento import burbuja, seleccion
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "clave-local-desarrollo")
 
+CARPETA_STATIC = Path(__file__).parent / "static"
+
+
+@app.context_processor
+def version_static():
+    """Agrega ?v=<fecha de modificación> a CSS y JS para que el navegador no use copias viejas."""
+    def estatico(nombre):
+        try:
+            version = int((CARPETA_STATIC / nombre).stat().st_mtime)
+        except OSError:
+            version = 0
+        return url_for("static", filename=nombre, v=version)
+    return {"estatico": estatico}
+
+
+@app.route("/salud")
+def salud():
+    return {"estado": "ok"}
+
 ARCHIVO_JSON = Path(
     os.environ.get(
         "EXPEDIENTES_JSON",

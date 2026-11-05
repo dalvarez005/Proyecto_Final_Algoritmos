@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+    <link rel="stylesheet" href="{{ estatico('estilos.css') }}">
 </head>
 <body>
 
@@ -49,6 +49,6 @@
     <p>Datos ficticios. El cifrado César es didáctico, no protege información real.</p>
 </footer>
 
-<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+<script src="{{ estatico('app.js') }}" defer></script>
 </body>
 </html>
