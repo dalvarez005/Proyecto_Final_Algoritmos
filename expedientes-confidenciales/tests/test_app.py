@@ -127,3 +127,28 @@ def test_eliminar_vuelve_a_la_misma_vista(cliente):
     assert r.status_code == 302
     assert r.headers["Location"] == "/?ordenar=seleccion&campo_orden=nombre"
     assert leer(cliente) == []
+
+
+def test_archivo_vacio_muestra_error(cliente):
+    cliente.archivo.write_text("", encoding="utf-8")
+    html = cliente.get("/").get_data(as_text=True)
+    assert "vacío o tiene formato inválido" in html
+
+
+def test_los_datos_persisten_tras_reiniciar(cliente):
+    crear(cliente, codigo="EXP-050", descripcion="HOLA", desplazamiento=3)
+    # Simula reiniciar: se vuelve a leer el archivo desde cero.
+    [exp] = modulo.cargar_expedientes()
+    assert exp["codigo"] == "EXP-050"
+    assert exp["descripcion"] == "KROD"
+
+
+def test_json_de_ejemplo_es_valido(tmp_path, monkeypatch):
+    from pathlib import Path
+    ejemplo = Path(modulo.__file__).parent / "data" / "expedientes_ejemplo.json"
+    destino = tmp_path / "e.json"
+    destino.write_text(ejemplo.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(modulo, "ARCHIVO_JSON", destino)
+    datos = modulo.cargar_expedientes()
+    assert len(datos) == 10
+    assert len({d["codigo"] for d in datos}) == 10

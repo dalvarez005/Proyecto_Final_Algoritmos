@@ -1,1 +1,82 @@
-[]
+[
+    {
+        "codigo": "EXP-007",
+        "nombre": "Mariana",
+        "apellido": "Ochoa",
+        "fecha": "2026-09-02",
+        "descripcion": "Whvwljr gho fdvr Dwodv; ghfodud kdehu ylvwr ho yhkífxor julv.",
+        "desplazamiento": 3
+    },
+    {
+        "codigo": "EXP-002",
+        "nombre": "Andrés",
+        "apellido": "Quiñónez",
+        "fecha": "2026-08-14",
+        "descripcion": "Nsktwrfsyj hts fhhjxt fq fwhmnat hjsywfq ij qf tknhnsf stwyj.",
+        "desplazamiento": 5
+    },
+    {
+        "codigo": "EXP-010",
+        "nombre": "Beatriz",
+        "apellido": "Lemus",
+        "fecha": "2026-10-01",
+        "descripcion": "Ylcpzhy ayhuzmlylujphz kls zlnbukv ayptlzayl.",
+        "desplazamiento": 7
+    },
+    {
+        "codigo": "EXP-004",
+        "nombre": "Rodrigo",
+        "apellido": "Fuentes",
+        "fecha": "2026-08-29",
+        "descripcion": "Cpfytóy apyotpyep nzy wl qtdnlwíl pw acóitxz wfypd.",
+        "desplazamiento": 11
+    },
+    {
+        "codigo": "EXP-001",
+        "nombre": "Ana",
+        "apellido": "López",
+        "fecha": "2026-08-03",
+        "descripcion": "Krod",
+        "desplazamiento": 3
+    },
+    {
+        "codigo": "EXP-009",
+        "nombre": "Valeria",
+        "apellido": "Cifuentes",
+        "fecha": "2026-09-21",
+        "descripcion": "Ragertó pbcvnf qr snpghenf pba srpunf nygrenqnf.",
+        "desplazamiento": 13
+    },
+    {
+        "codigo": "EXP-005",
+        "nombre": "Héctor",
+        "apellido": "Mazariegos",
+        "fecha": "2026-09-05",
+        "descripcion": "Wspmgmxe tvsxiggmór tsv eqiredew vigmfmhew.",
+        "desplazamiento": 4
+    },
+    {
+        "codigo": "EXP-003",
+        "nombre": "Lucía",
+        "apellido": "Barrios",
+        "fecha": "2026-08-20",
+        "descripcion": "Lxwcjlcx nw jmdjwjb; lxworavja rmnwcrmjm jwcnb mn uj nwcanerbcj.",
+        "desplazamiento": 9
+    },
+    {
+        "codigo": "EXP-008",
+        "nombre": "Esteban",
+        "apellido": "Garrido",
+        "fecha": "2026-09-15",
+        "descripcion": "Dbtp dfssbep qps gbmub ef qsvfcbt.",
+        "desplazamiento": 1
+    },
+    {
+        "codigo": "EXP-006",
+        "nombre": "Daniela",
+        "apellido": "Pineda",
+        "fecha": "2026-09-09",
+        "descripcion": "Zqbghun cd ztchn ftzqczcn dm kz bziz etdqsd A.",
+        "desplazamiento": 25
+    }
+]

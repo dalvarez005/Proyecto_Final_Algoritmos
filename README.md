@@ -8,6 +8,8 @@ Aplicación web en Flask para registrar expedientes ficticios y practicar los al
 
 Proyecto final de la clase de Algoritmos. Los datos son ficticios y el cifrado César es didáctico: no protege información real.
 
+**Documentación del proyecto** (propuesta de valor, explicación de algoritmos y decisiones, evidencia de pruebas y guion de demostración): [docs/DOCUMENTACION.md](docs/DOCUMENTACION.md)
+
 | Escritorio | Celular |
 |---|---|
 | ![Vista de escritorio](docs/captura-escritorio.png) | ![Vista en celular](docs/captura-movil.png) |
@@ -40,7 +42,15 @@ cd expedientes-confidenciales
 flask --app app run
 ```
 
-Abre <http://127.0.0.1:5000>.
+Abre <http://127.0.0.1:5000>. La app arranca con 10 expedientes ficticios de ejemplo.
+
+### Datos de ejemplo
+
+`data/expedientes.json` es el archivo que usa la app. Para volver a los datos de ejemplo originales:
+
+```bash
+cp data/expedientes_ejemplo.json data/expedientes.json
+```
 
 ### Variables de entorno (opcionales)
 
@@ -69,7 +79,9 @@ expedientes-confidenciales/
 │   ├── ordenamiento.py    # Burbuja y selección
 │   ├── busqueda.py        # Secuencial y binaria
 │   └── cesar.py           # Cifrar y descifrar
-├── data/expedientes.json  # Datos (se crea si no existe)
+├── data/
+│   ├── expedientes.json          # Datos que usa la app (se crea si no existe)
+│   └── expedientes_ejemplo.json  # 10 expedientes ficticios de ejemplo
 ├── static/
 │   ├── estilos.css
 │   └── app.js             # Vista previa del cifrado y paneles de editar/eliminar
