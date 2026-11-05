@@ -1,362 +1,356 @@
-
-from flask import Flask, render_template, request, redirect, url_for, flash
-from pathlib import Path
 import json
+import os
+from datetime import date
+from pathlib import Path
+from urllib.parse import parse_qsl, urlencode
 
-from algoritmos.ordenamiento import burbuja, seleccion
-from algoritmos.busqueda import busqueda_secuencial, busqueda_binaria
+from flask import Flask, flash, redirect, render_template, request, url_for
+
+from algoritmos.busqueda import busqueda_binaria, busqueda_secuencial
 from algoritmos.cesar import cifrar, descifrar
+from algoritmos.ordenamiento import burbuja, seleccion
 
 app = Flask(__name__)
-app.secret_key = "clave-local-desarrollo"
+app.secret_key = os.environ.get("SECRET_KEY", "clave-local-desarrollo")
 
-ARCHIVO_JSON = Path(__file__).parent / "data" / "expedientes.json"
+ARCHIVO_JSON = Path(
+    os.environ.get(
+        "EXPEDIENTES_JSON",
+        Path(__file__).parent / "data" / "expedientes.json",
+    )
+)
+
+CAMPOS = ["codigo", "nombre", "apellido", "fecha", "descripcion", "desplazamiento"]
+CAMPOS_ORDENABLES = ["codigo", "nombre"]
+DESPLAZAMIENTO_DEFECTO = 3
+
+ALGORITMOS_ORDEN = {
+    "burbuja": ("Burbuja", burbuja),
+    "seleccion": ("Selección", seleccion),
+}
+ALGORITMOS_BUSQUEDA = {
+    "secuencial": "Secuencial",
+    "binaria": "Binaria",
+}
 
 
 # ==========================================
-# ALMACENAMIENTO JSON---
+# ALMACENAMIENTO JSON
 # ==========================================
 
 def cargar_expedientes():
+    """Lee el JSON, valida su estructura y migra registros antiguos."""
     ARCHIVO_JSON.parent.mkdir(parents=True, exist_ok=True)
 
     if not ARCHIVO_JSON.exists():
         ARCHIVO_JSON.write_text("[]", encoding="utf-8")
 
     try:
-        contenido = ARCHIVO_JSON.read_text(encoding="utf-8")
-        datos = json.loads(contenido)
-
-        if not isinstance(datos, list):
-            raise ValueError("El JSON debe contener una lista.")
-
-        for expediente in datos:
-            if not isinstance(expediente, dict):
-                raise ValueError("Hay registros inválidos en el JSON.")
-
-            campos = [
-                "codigo", "nombre", "apellido",
-                "fecha", "descripcion", "desplazamiento"
-            ]
-
-            if any(campo not in expediente for campo in campos):
-                raise ValueError("Un expediente tiene campos incompletos.")
-
-        return datos
-
-    except (json.JSONDecodeError, ValueError) as error:
+        datos = json.loads(ARCHIVO_JSON.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
         raise ValueError(
             "El archivo expedientes.json está vacío o tiene formato inválido."
         ) from error
 
+    if not isinstance(datos, list):
+        raise ValueError("El archivo expedientes.json debe contener una lista.")
+
+    migrado = False
+
+    for expediente in datos:
+        if not isinstance(expediente, dict):
+            raise ValueError("Hay registros inválidos en expedientes.json.")
+
+        # Registros creados antes de guardar el desplazamiento: se cifran con 3.
+        if "desplazamiento" not in expediente and "descripcion" in expediente:
+            expediente["descripcion"] = cifrar(
+                str(expediente["descripcion"]), DESPLAZAMIENTO_DEFECTO
+            )
+            expediente["desplazamiento"] = DESPLAZAMIENTO_DEFECTO
+            migrado = True
+
+        if any(campo not in expediente for campo in CAMPOS):
+            raise ValueError("Un expediente tiene campos incompletos.")
+
+        try:
+            expediente["desplazamiento"] = int(expediente["desplazamiento"])
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"El expediente {expediente['codigo']} tiene un desplazamiento inválido."
+            ) from error
+
+    if migrado:
+        guardar_expedientes(datos)
+
+    return datos
+
 
 def guardar_expedientes(expedientes):
+    """Escribe a un archivo temporal y lo reemplaza, para no dejar el JSON a medias."""
     ARCHIVO_JSON.parent.mkdir(parents=True, exist_ok=True)
 
     temporal = ARCHIVO_JSON.with_suffix(".tmp")
-
     temporal.write_text(
         json.dumps(expedientes, ensure_ascii=False, indent=4),
-        encoding="utf-8"
+        encoding="utf-8",
     )
-
     temporal.replace(ARCHIVO_JSON)
 
 
 def preparar_expediente(expediente):
     copia = expediente.copy()
-
     copia["descripcion_visible"] = descifrar(
-        copia["descripcion"],
-        int(copia["desplazamiento"])
+        copia["descripcion"], int(copia["desplazamiento"])
     )
-
     return copia
 
 
+def leer_formulario():
+    """Devuelve (datos, error). Valida campos obligatorios, fecha y desplazamiento."""
+    datos = {
+        campo: request.form.get(campo, "").strip()
+        for campo in ["codigo", "nombre", "apellido", "fecha", "descripcion"]
+    }
+
+    if not all(datos.values()):
+        return datos, "Todos los campos son obligatorios."
+
+    if "/" in datos["codigo"]:
+        return datos, "El código no puede contener el carácter «/»."
+
+    try:
+        date.fromisoformat(datos["fecha"])
+    except ValueError:
+        return datos, "La fecha no es válida."
+
+    try:
+        desplazamiento = int(request.form.get("desplazamiento", DESPLAZAMIENTO_DEFECTO))
+    except ValueError:
+        return datos, "El desplazamiento debe ser un número entero."
+
+    if not 0 <= desplazamiento <= 25:
+        return datos, "El desplazamiento debe estar entre 0 y 25."
+
+    datos["desplazamiento"] = desplazamiento
+    return datos, None
+
+
+def buscar_por_codigo(expedientes, codigo):
+    for expediente in expedientes:
+        if expediente["codigo"].casefold() == codigo.casefold():
+            return expediente
+    return None
+
+
 # ==========================================
-# PÁGINA PRINCIPAL---
+# PÁGINA PRINCIPAL
 # ==========================================
 
-@app.route("/")
-def inicio():
+PARAMETROS_VISTA = ["ordenar", "campo_orden", "buscar", "metodo", "campo_busqueda"]
+
+
+def parametros_vista(origen):
+    """Conserva solo los parámetros de orden y búsqueda (para volver a la misma vista)."""
+    return {k: origen[k] for k in PARAMETROS_VISTA if origen.get(k)}
+
+
+def parametros_desde_volver():
+    return parametros_vista(dict(parse_qsl(request.form.get("volver", ""))))
+
+
+def pagina_inicio(args, editar=None, borrador=None, error_edicion=None, estado=200, eliminar=None):
+    ordenar = args.get("ordenar", "")
+    campo_orden = args.get("campo_orden", "codigo")
+    buscar = args.get("buscar", "").strip()
+    metodo = args.get("metodo", "secuencial")
+    campo_busqueda = args.get("campo_busqueda", "codigo")
+
+    if ordenar not in ALGORITMOS_ORDEN:
+        ordenar = ""
+    if campo_orden not in CAMPOS_ORDENABLES:
+        campo_orden = "codigo"
+    if metodo not in ALGORITMOS_BUSQUEDA:
+        metodo = "secuencial"
+    if campo_busqueda not in CAMPOS_ORDENABLES:
+        campo_busqueda = "codigo"
+
+    vista = parametros_vista(args)
+
+    contexto = {
+        "expedientes": [],
+        "error_archivo": None,
+        "comparaciones": None,
+        "resultado": None,
+        "comparaciones_busqueda": None,
+        "error_busqueda": None,
+        "ordenar": ordenar,
+        "campo_orden": campo_orden,
+        "buscar": buscar,
+        "metodo": metodo,
+        "campo_busqueda": campo_busqueda,
+        "nombres_orden": {k: v[0] for k, v in ALGORITMOS_ORDEN.items()},
+        "nombres_busqueda": ALGORITMOS_BUSQUEDA,
+        "hoy": date.today().isoformat(),
+        "editar": (editar or "").casefold(),
+        "eliminar": (eliminar or "").casefold(),
+        "borrador": borrador,
+        "error_edicion": error_edicion,
+        "vista": vista,
+        "volver": urlencode(vista),
+    }
+
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
-        return render_template(
-            "index.html",
-            expedientes=[],
-            error_archivo=str(error),
-            comparaciones=None,
-            resultado=None,
-            ordenar="",
-            campo_orden="codigo",
-            buscar="",
-            metodo="secuencial",
-            campo_busqueda="codigo"
-        )
+        contexto["error_archivo"] = str(error)
+        return render_template("index.html", **contexto), estado
 
-    ordenar = request.args.get("ordenar", "")
-    campo_orden = request.args.get("campo_orden", "codigo")
-
-    comparaciones = None
-
-    if campo_orden not in ["codigo", "nombre"]:
-        campo_orden = "codigo"
-
-    if ordenar == "burbuja":
-        expedientes, comparaciones = burbuja(
-            expedientes, campo_orden
-        )
-
-    elif ordenar == "seleccion":
-        expedientes, comparaciones = seleccion(
-            expedientes, campo_orden
-        )
-
-    buscar = request.args.get("buscar", "").strip()
-    metodo = request.args.get("metodo", "secuencial")
-    campo_busqueda = request.args.get("campo_busqueda", "codigo")
-
-    resultado = None
-    comparaciones_busqueda = None
-    error_busqueda = None
-
-    if campo_busqueda not in ["codigo", "nombre"]:
-        campo_busqueda = "codigo"
+    if ordenar:
+        _, algoritmo = ALGORITMOS_ORDEN[ordenar]
+        expedientes, contexto["comparaciones"] = algoritmo(expedientes, campo_orden)
 
     if buscar:
+        resultado = None
+
         if metodo == "binaria":
-
-            if ordenar not in ["burbuja", "seleccion"]:
-                error_busqueda = (
-                    "Primero debes ordenar los expedientes "
-                    "para utilizar la búsqueda binaria."
+            if not ordenar:
+                contexto["error_busqueda"] = (
+                    "Primero ordena los expedientes para usar la búsqueda binaria."
                 )
-
             elif campo_orden != campo_busqueda:
-                error_busqueda = (
-                    "Debes ordenar por el mismo campo que deseas buscar."
+                contexto["error_busqueda"] = (
+                    "Ordena por el mismo campo que quieres buscar "
+                    "para usar la búsqueda binaria."
                 )
-
             else:
-                resultado, comparaciones_busqueda = busqueda_binaria(
+                resultado, contexto["comparaciones_busqueda"] = busqueda_binaria(
                     expedientes, campo_busqueda, buscar
                 )
-
         else:
-            resultado, comparaciones_busqueda = busqueda_secuencial(
-                cargar_expedientes(), campo_busqueda, buscar
+            # Recorre la lista en el mismo orden en que se muestra.
+            resultado, contexto["comparaciones_busqueda"] = busqueda_secuencial(
+                expedientes, campo_busqueda, buscar
             )
 
-    expedientes_visibles = [
-        preparar_expediente(e) for e in expedientes
-    ]
+        if resultado:
+            contexto["resultado"] = preparar_expediente(resultado)
 
-    resultado_visible = (
-        preparar_expediente(resultado) if resultado else None
-    )
+    contexto["expedientes"] = [preparar_expediente(e) for e in expedientes]
+    return render_template("index.html", **contexto), estado
 
-    return render_template(
-        "index.html",
-        expedientes=expedientes_visibles,
-        error_archivo=None,
-        comparaciones=comparaciones,
-        resultado=resultado_visible,
-        comparaciones_busqueda=comparaciones_busqueda,
-        error_busqueda=error_busqueda,
-        ordenar=ordenar,
-        campo_orden=campo_orden,
-        buscar=buscar,
-        metodo=metodo,
-        campo_busqueda=campo_busqueda
+
+@app.route("/")
+def inicio():
+    return pagina_inicio(
+        request.args,
+        editar=request.args.get("editar"),
+        eliminar=request.args.get("eliminar"),
     )
 
 
 # ==========================================
-# CREAR EXPEDIENTE----
+# CREAR EXPEDIENTE
 # ==========================================
 
 @app.route("/crear", methods=["POST"])
 def crear():
-    codigo = request.form.get("codigo", "").strip()
-    nombre = request.form.get("nombre", "").strip()
-    apellido = request.form.get("apellido", "").strip()
-    fecha = request.form.get("fecha", "").strip()
-    descripcion = request.form.get("descripcion", "").strip()
-
-    try:
-        desplazamiento = int(request.form.get("desplazamiento", "3"))
-    except ValueError:
-        flash("El desplazamiento debe ser un número entero.", "error")
+    datos, error = leer_formulario()
+    if error:
+        flash(error, "error")
         return redirect(url_for("inicio"))
 
-    if not all([codigo, nombre, apellido, fecha, descripcion]):
-        flash("Todos los campos son obligatorios.", "error")
-        return redirect(url_for("inicio"))
-
-    if not 0 <= desplazamiento <= 25:
-        flash("El desplazamiento debe estar entre 0 y 25.", "error")
-        return redirect(url_for("inicio"))
-
-    try:
-        migrado = False
-
-        for expediente in datos:
-            if not isinstance(expediente, dict):
-                raise ValueError("Hay registros inválidos en el JSON.")
-
-            campos = [
-                "codigo", "nombre", "apellido",
-                "fecha", "descripcion"
-            ]
-
-            if any(campo not in expediente for campo in campos):
-                raise ValueError("Un expediente tiene campos incompletos.")
-
-            if "desplazamiento" not in expediente:
-                expediente["descripcion"] = cifrar(
-                    expediente["descripcion"], 3
-                )
-                expediente["desplazamiento"] = 3
-                migrado = True
-
-        if migrado:
-            guardar_expedientes(datos)
-
-    except ValueError as error:
-        flash(str(error), "error")
-        return redirect(url_for("inicio"))
-
-    for expediente in expedientes:
-        if expediente["codigo"].casefold() == codigo.casefold():
-            flash("El código ya existe.", "error")
-            return redirect(url_for("inicio"))
-
-    nuevo = {
-        "codigo": codigo,
-        "nombre": nombre,
-        "apellido": apellido,
-        "fecha": fecha,
-        "descripcion": cifrar(descripcion, desplazamiento),
-        "desplazamiento": desplazamiento
-    }
-
-    expedientes.append(nuevo)
-    guardar_expedientes(expedientes)
-
-    flash("Expediente registrado correctamente.", "exito")
-    return redirect(url_for("inicio"))
-
-
-# ==========================================
-# EDITAR EXPEDIENTE
-# ==========================================
-
-@app.route("/editar/<codigo>", methods=["GET", "POST"])
-def editar(codigo):
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
         flash(str(error), "error")
         return redirect(url_for("inicio"))
 
-    expediente = None
+    if buscar_por_codigo(expedientes, datos["codigo"]):
+        flash(f"El código {datos['codigo']} ya existe.", "error")
+        return redirect(url_for("inicio"))
 
-    for registro in expedientes:
-        if registro["codigo"].casefold() == codigo.casefold():
-            expediente = registro
-            break
+    datos["descripcion"] = cifrar(datos["descripcion"], datos["desplazamiento"])
+    expedientes.append(datos)
+    guardar_expedientes(expedientes)
+
+    flash(f"Expediente {datos['codigo']} registrado.", "exito")
+    return redirect(url_for("inicio"))
+
+
+# ==========================================
+# EDITAR EXPEDIENTE (dentro de la tabla)
+# ==========================================
+
+@app.route("/editar/<path:codigo>", methods=["GET", "POST"])
+def editar(codigo):
+    if request.method == "GET":
+        # La edición vive en la tabla; esta ruta solo abre la fila.
+        return redirect(url_for("inicio", editar=codigo, _anchor="editando"))
+
+    vista = parametros_desde_volver()
+
+    try:
+        expedientes = cargar_expedientes()
+    except ValueError as error:
+        flash(str(error), "error")
+        return redirect(url_for("inicio", **vista))
+
+    expediente = buscar_por_codigo(expedientes, codigo)
 
     if expediente is None:
         flash("Expediente no encontrado.", "error")
-        return redirect(url_for("inicio"))
+        return redirect(url_for("inicio", **vista))
 
-    if request.method == "POST":
-        nuevo_codigo = request.form.get("codigo", "").strip()
-        nombre = request.form.get("nombre", "").strip()
-        apellido = request.form.get("apellido", "").strip()
-        fecha = request.form.get("fecha", "").strip()
-        descripcion = request.form.get("descripcion", "").strip()
+    datos, error = leer_formulario()
 
-        try:
-            desplazamiento = int(
-                request.form.get("desplazamiento", "3")
-            )
-        except ValueError:
-            flash("El desplazamiento debe ser un número entero.", "error")
-            return redirect(url_for("editar", codigo=codigo))
+    if not error:
+        otro = buscar_por_codigo(expedientes, datos["codigo"])
+        if otro is not None and otro is not expediente:
+            error = f"El código {datos['codigo']} ya está registrado."
 
-        if not all([
-            nuevo_codigo, nombre, apellido, fecha, descripcion
-        ]):
-            flash("Todos los campos son obligatorios.", "error")
-            return redirect(url_for("editar", codigo=codigo))
+    if error:
+        # Vuelve a mostrar la fila abierta con lo que escribió el usuario.
+        borrador = dict(datos)
+        borrador["descripcion_visible"] = datos["descripcion"]
+        borrador.setdefault("desplazamiento", request.form.get("desplazamiento", ""))
+        return pagina_inicio(
+            vista, editar=codigo, borrador=borrador,
+            error_edicion=error, estado=422,
+        )
 
-        if not 0 <= desplazamiento <= 25:
-            flash("El desplazamiento debe estar entre 0 y 25.", "error")
-            return redirect(url_for("editar", codigo=codigo))
+    datos["descripcion"] = cifrar(datos["descripcion"], datos["desplazamiento"])
+    expediente.update(datos)
+    guardar_expedientes(expedientes)
 
-        for registro in expedientes:
-            if (
-                registro["codigo"].casefold() == nuevo_codigo.casefold()
-                and registro is not expediente
-            ):
-                flash("El nuevo código ya está registrado.", "error")
-                return redirect(url_for("editar", codigo=codigo))
-
-        expediente.update({
-            "codigo": nuevo_codigo,
-            "nombre": nombre,
-            "apellido": apellido,
-            "fecha": fecha,
-            "descripcion": cifrar(descripcion, desplazamiento),
-            "desplazamiento": desplazamiento
-        })
-
-        guardar_expedientes(expedientes)
-
-        flash("Expediente actualizado correctamente.", "exito")
-        return redirect(url_for("inicio"))
-
-    expediente_visible = preparar_expediente(expediente)
-
-    return render_template(
-        "editar.html",
-        expediente=expediente_visible
-    )
+    flash(f"Expediente {datos['codigo']} actualizado.", "exito")
+    return redirect(url_for("inicio", **vista))
 
 
 # ==========================================
 # ELIMINAR EXPEDIENTE
 # ==========================================
 
-@app.route("/eliminar/<codigo>", methods=["POST"])
+@app.route("/eliminar/<path:codigo>", methods=["POST"])
 def eliminar(codigo):
+    vista = parametros_desde_volver()
+
     try:
         expedientes = cargar_expedientes()
     except ValueError as error:
         flash(str(error), "error")
-        return redirect(url_for("inicio"))
+        return redirect(url_for("inicio", **vista))
 
-    nuevos = []
-    encontrado = False
+    expediente = buscar_por_codigo(expedientes, codigo)
 
-    for expediente in expedientes:
-        if expediente["codigo"].casefold() == codigo.casefold():
-            encontrado = True
-        else:
-            nuevos.append(expediente)
-
-    if encontrado:
-        guardar_expedientes(nuevos)
-        flash("Expediente eliminado correctamente.", "exito")
-    else:
+    if expediente is None:
         flash("No se encontró el expediente.", "error")
+    else:
+        expedientes.remove(expediente)
+        guardar_expedientes(expedientes)
+        flash(f"Expediente {expediente['codigo']} eliminado.", "exito")
 
-    return redirect(url_for("inicio"))
+    return redirect(url_for("inicio", **vista))
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")

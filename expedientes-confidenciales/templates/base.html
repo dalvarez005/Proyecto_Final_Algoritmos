@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gestión académica de expedientes con algoritmos de ordenamiento, búsqueda y cifrado César.">
+    <meta name="theme-color" content="#1b2433">
+    <title>{% block titulo %}Expedientes Confidenciales{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+</head>
+<body>
+
+<a class="saltar" href="#contenido">Ir al contenido</a>
+
+<header class="cabecera">
+    <div class="cabecera-interior">
+        <div class="marca">
+            <a href="{{ url_for('inicio') }}" class="marca-titulo">
+                <span class="marca-linea">Expedientes</span>
+                <span class="marca-linea marca-linea-ancha">Confidenciales</span>
+            </a>
+            <p class="marca-sub">Sistema de gestión académica · Ordenamiento, búsqueda y cifrado César</p>
+        </div>
+        <span class="sello" aria-hidden="true">Confidencial</span>
+    </div>
+</header>
+
+<main id="contenido" class="contenido">
+
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+        <div class="avisos" role="status" aria-live="polite">
+            {% for categoria, mensaje in mensajes %}
+                <p class="aviso aviso-{{ categoria }}">{{ mensaje }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block contenido %}{% endblock %}
+
+</main>
+
+<footer class="pie">
+    <p>Proyecto académico · Clase de Algoritmos</p>
+    <p>Datos ficticios. El cifrado César es didáctico, no protege información real.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
