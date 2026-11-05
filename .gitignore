@@ -1,7 +1,8 @@
-.venv/
-venv/
+datos/
+.env
+expedientes-confidenciales/data/*.tmp
 __pycache__/
 *.py[cod]
-.env
 .pytest_cache/
-expedientes-confidenciales/data/*.tmp
+.venv/
+venv/

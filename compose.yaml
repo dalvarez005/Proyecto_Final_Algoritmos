@@ -1,0 +1,19 @@
+name: expedientes
+
+services:
+  app:
+    build: .
+    image: expedientes-app:latest
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY en .env}
+    ports:
+      - "${APP_PORT:-5220}:8080"
+    volumes:
+      - ./datos:/app/data
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
