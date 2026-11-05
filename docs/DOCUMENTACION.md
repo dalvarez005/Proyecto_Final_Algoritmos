@@ -11,9 +11,7 @@ Proyecto final de Algoritmos · Universidad Mariano Gálvez de Guatemala · Facu
 | Carlos Vinicio Camas | 7690-26-12538 |
 | Maynor Iván Guerra Chávez | 7690-26-9413 |
 
-![Foto del grupo](foto-grupo.jpg)
-
-> Pendiente: guardar la foto grupal (no individuales) como `docs/foto-grupo.jpg`.
+![Foto del grupo: Edgar, Diego, Carlos y Maynor](foto-grupo.jpg)
 
 ## 2. Propuesta de valor
 
